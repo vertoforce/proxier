@@ -24,8 +24,8 @@ var DefaultSources = []proxy.ProxySource{
 
 // Proxier
 type Proxier struct {
-	// proxySources are sources of proxies
-	proxySources []proxy.ProxySource
+	// proxySources are sources of proxies, using a map so we randomize our use of each
+	proxySources map[proxy.ProxySource]bool
 	// proxyDB is where we store the proxies we know about
 	proxyDB proxy.ProxyDB
 }
@@ -33,6 +33,7 @@ type Proxier struct {
 // NewBare Creates a new bare proxier with no proxy sources
 func NewBare() *Proxier {
 	p := &Proxier{}
+	p.proxySources = map[proxy.ProxySource]bool{}
 	return p
 }
 
@@ -43,7 +44,9 @@ func New() *Proxier {
 
 // WithProxySources Add proxy sources
 func (p *Proxier) WithProxySources(sources ...proxy.ProxySource) *Proxier {
-	p.proxySources = append(p.proxySources, sources...)
+	for _, proxySource := range sources {
+		p.proxySources[proxySource] = true
+	}
 	return p
 }
 
@@ -58,7 +61,7 @@ func (p *Proxier) WithProxyDB(proxyDB proxy.ProxyDB) *Proxier {
 // GetProxyFromSources Get a ProxySource from one of our proxySources
 func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error) {
 	var proxy *proxy.Proxy
-	for _, proxySource := range p.proxySources {
+	for proxySource, _ := range p.proxySources {
 		var err error
 		proxy, err = proxySource.GetProxy(ctx)
 		if err != nil {
@@ -82,7 +85,13 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 	var resp *http.Response
 	var err error
 	// Try our current proxies in the database
+	if p.proxyDB == nil {
+		return nil, fmt.Errorf("no proxydb set and is required")
+	}
 	proxies, err := p.proxyDB.GetProxies(ctx)
+	if err != nil {
+		return nil, err
+	}
 	// TODO: Randomize which proxies we try
 	for _, proxy := range proxies {
 		resp, err = proxy.DoRequest(ctx, method, URL, body)
@@ -93,7 +102,7 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 		}
 
 		// This wasn't a success, we should ditch this proxy from the database
-		p.proxyDB.DelProxy(ctx, proxy)
+		// p.proxyDB.DelProxy(ctx, proxy)
 	}
 
 	// If we are here, there are no valid proxies available in the proxyDB

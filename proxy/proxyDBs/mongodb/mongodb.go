@@ -23,6 +23,11 @@ func New(ctx context.Context, connectString, database, collection string) (*Mong
 		return nil, err
 	}
 
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	db := &MongoDBProxyDB{}
 	db.client = client
 	db.database = client.Database(database)
@@ -37,6 +42,9 @@ func (db *MongoDBProxyDB) GetProxies(ctx context.Context) ([]*proxy.Proxy, error
 	cursor, err := db.collection.Find(ctx, bson.D{})
 	if err == mongo.ErrNoDocuments {
 		return proxies, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 

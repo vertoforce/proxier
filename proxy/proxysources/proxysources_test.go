@@ -24,7 +24,7 @@ func TestProxySources(t *testing.T) {
 		}
 
 		// Make sure proxy has valid stuff
-		if proxy.IP == "" || proxy.Port == 0 {
+		if proxy.IP == "" || proxy.Port <= 0 {
 			t.Errorf("Invalid proxy got")
 		}
 	}

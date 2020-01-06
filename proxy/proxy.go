@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
-	"golang.org/x/net/proxy"
+	"h12.io/socks"
 )
 
 type Protocol string
 
 const (
-	Socks5 Protocol = "socks5"
-	HTTP   Protocol = "HTTP"
+	Socks5Protocol  Protocol = "socks5"
+	Socks4aProtocol Protocol = "socks4a"
+	Socks4Protocol  Protocol = "socks4"
+	SocksProtocol   Protocol = "socks"
+	HTTPProtocol    Protocol = "http"
 )
 
 type Proxy struct {
@@ -42,22 +46,52 @@ func (p *Proxy) Address() string {
 
 func (p *Proxy) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
 	switch p.Protocol {
-	case "socks5":
-		return p.doRequestSocks5(ctx, method, URL, body)
+	case SocksProtocol, Socks4Protocol, Socks4aProtocol, Socks5Protocol:
+		return p.doRequestSocks(ctx, method, URL, body)
+	case HTTPProtocol:
+		return p.doRequestHTTP(ctx, method, URL, body)
 	default:
 		return nil, fmt.Errorf("No function to use this protocol")
 	}
 }
 
-func (p *Proxy) doRequestSocks5(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
-	// Create socks5 client
-	dialer, err := proxy.SOCKS5("tcp", p.Address(), nil, proxy.Direct)
+func (p *Proxy) doRequestSocks(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
+	// Create socks proxy
+	socksType := socks.SOCKS4
+	switch p.Protocol {
+	case Socks4Protocol:
+		socksType = socks.SOCKS4
+	case Socks4aProtocol:
+		socksType = socks.SOCKS4A
+	case Socks5Protocol:
+		socksType = socks.SOCKS5
+	}
+	dialSocksProxy := socks.DialSocksProxy(socksType, p.Address())
+	tr := &http.Transport{Dial: dialSocksProxy}
+	httpClient := &http.Client{Transport: tr}
+
+	// Create request
+	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
 		return nil, err
 	}
-	httpTransport := &http.Transport{}
-	httpTransport.Dial = dialer.Dial
-	httpClient := &http.Client{Transport: httpTransport}
+	req = req.WithContext(ctx)
+
+	// Make request
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (p *Proxy) doRequestHTTP(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
+	proxyURL, err := url.Parse(URL)
+	if err != nil {
+		return nil, err
+	}
+	httpClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 
 	// Create request
 	req, err := http.NewRequest("GET", URL, nil)
