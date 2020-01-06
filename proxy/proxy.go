@@ -13,6 +13,7 @@ import (
 type Protocol string
 
 const (
+	Socks5hProtocol Protocol = "socks5h"
 	Socks5Protocol  Protocol = "socks5"
 	Socks4aProtocol Protocol = "socks4a"
 	Socks4Protocol  Protocol = "socks4"
@@ -22,7 +23,7 @@ const (
 
 type Proxy struct {
 	IP       string
-	Port     int16
+	Port     uint16
 	Protocol Protocol
 }
 

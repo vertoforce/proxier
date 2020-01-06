@@ -29,13 +29,13 @@ func (p *GimmeProxySource) GetProxy(ctx context.Context) (*proxy.Proxy, error) {
 }
 
 func (p *GimmeProxyProxy) Standardize() *proxy.Proxy {
-	port, err := strconv.ParseInt(p.Port, 10, 64)
+	port, err := strconv.ParseUint(p.Port, 10, 64)
 	if err != nil {
 		port = 0
 	}
 	ret := &proxy.Proxy{
 		IP:       p.IP,
-		Port:     int16(port),
+		Port:     uint16(port),
 		Protocol: proxy.Protocol(p.Type),
 	}
 
