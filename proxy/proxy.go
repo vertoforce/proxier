@@ -19,7 +19,7 @@ const (
 type Proxy struct {
 	IP       string
 	Port     int16
-	Protocol string
+	Protocol Protocol
 }
 
 type ProxySource interface {
@@ -32,8 +32,8 @@ type ProxySource interface {
 // Note that Proxier still stores a local slice of proxies in use which is a cache of this DB
 type ProxyDB interface {
 	GetProxies(context.Context) ([]Proxy, error)
-	DelProxy(context.Context, Proxy) error
 	StoreProxy(context.Context, Proxy) error
+	DelProxy(context.Context, Proxy) error
 }
 
 func (p *Proxy) Address() string {
