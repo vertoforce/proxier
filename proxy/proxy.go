@@ -31,25 +31,25 @@ type ProxySource interface {
 // this interface allows for the storing of proxies (in a database or something else)
 // Note that Proxier still stores a local slice of proxies in use which is a cache of this DB
 type ProxyDB interface {
-	GetProxies(context.Context) ([]Proxy, error)
-	StoreProxy(context.Context, Proxy) error
-	DelProxy(context.Context, Proxy) error
+	GetProxies(context.Context) ([]*Proxy, error)
+	StoreProxy(context.Context, *Proxy) error
+	DelProxy(context.Context, *Proxy) error
 }
 
 func (p *Proxy) Address() string {
 	return fmt.Sprintf("%s:%d", p.IP, p.Port)
 }
 
-func (p *Proxy) DoRequest(method, URL string, body io.Reader) (*http.Response, error) {
+func (p *Proxy) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
 	switch p.Protocol {
 	case "socks5":
-		return p.doRequestSocks5(method, URL, body)
+		return p.doRequestSocks5(ctx, method, URL, body)
 	default:
 		return nil, fmt.Errorf("No function to use this protocol")
 	}
 }
 
-func (p *Proxy) doRequestSocks5(method, URL string, body io.Reader) (*http.Response, error) {
+func (p *Proxy) doRequestSocks5(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
 	// Create socks5 client
 	dialer, err := proxy.SOCKS5("tcp", p.Address(), nil, proxy.Direct)
 	if err != nil {
@@ -64,6 +64,7 @@ func (p *Proxy) doRequestSocks5(method, URL string, body io.Reader) (*http.Respo
 	if err != nil {
 		return nil, err
 	}
+	req = req.WithContext(ctx)
 
 	// Make request
 	resp, err := httpClient.Do(req)

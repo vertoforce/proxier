@@ -31,8 +31,8 @@ func New(ctx context.Context, connectString, database, collection string) (*Mong
 	return db, nil
 }
 
-func (db *MongoDBProxyDB) GetProxies(ctx context.Context) ([]proxy.Proxy, error) {
-	proxies := []proxy.Proxy{}
+func (db *MongoDBProxyDB) GetProxies(ctx context.Context) ([]*proxy.Proxy, error) {
+	proxies := []*proxy.Proxy{}
 
 	cursor, err := db.collection.Find(ctx, bson.D{})
 	if err == mongo.ErrNoDocuments {
@@ -47,18 +47,18 @@ func (db *MongoDBProxyDB) GetProxies(ctx context.Context) ([]proxy.Proxy, error)
 			continue
 		}
 
-		proxies = append(proxies, p)
+		proxies = append(proxies, &p)
 	}
 
 	return proxies, err
 }
 
-func (db *MongoDBProxyDB) StoreProxy(ctx context.Context, proxy proxy.Proxy) error {
+func (db *MongoDBProxyDB) StoreProxy(ctx context.Context, proxy *proxy.Proxy) error {
 	_, err := db.collection.InsertOne(ctx, proxy)
 	return err
 }
 
-func (db *MongoDBProxyDB) DelProxy(ctx context.Context, proxy proxy.Proxy) error {
+func (db *MongoDBProxyDB) DelProxy(ctx context.Context, proxy *proxy.Proxy) error {
 	_, err := db.collection.DeleteOne(ctx, proxy)
 	return err
 }

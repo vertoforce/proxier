@@ -2,11 +2,18 @@
 package proxier
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"proxy/proxy"
 	"proxy/proxy/proxysources/getproxylist"
 	"proxy/proxy/proxysources/gimmeproxy"
+	"time"
+)
+
+const (
+	DefaultProxyDBTimeout = time.Second * 5
 )
 
 // DefaultSources are the default proxy sources available
@@ -19,9 +26,7 @@ var DefaultSources = []proxy.ProxySource{
 type Proxier struct {
 	// proxySources are sources of proxies
 	proxySources []proxy.ProxySource
-	// currentProxies are the currently being used proxies
-	currentProxies []proxy.Proxy
-	// proxyDB is a store of proxies we currently know about
+	// proxyDB is where we store the proxies we know about
 	proxyDB proxy.ProxyDB
 }
 
@@ -42,16 +47,73 @@ func (p *Proxier) WithProxySources(sources ...proxy.ProxySource) *Proxier {
 	return p
 }
 
-// WithProxyDB Add proxy DB
+// WithProxyDB Add proxy DB, there can only be one proxy db
 func (p *Proxier) WithProxyDB(proxyDB proxy.ProxyDB) *Proxier {
 	p.proxyDB = proxyDB
 	return p
 }
 
-func (p *Proxier) NewRequest(method, URL, string, body io.Reader) (*http.Request, error) {
-	// TODO: Get proxy
-	// TODO: Set user agent
+// -- functionality --
 
-	// Return req
-	return nil, nil
+// GetProxyFromSources Get a ProxySource from one of our proxySources
+func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error) {
+	var proxy *proxy.Proxy
+	for _, proxySource := range p.proxySources {
+		var err error
+		proxy, err = proxySource.GetProxy(ctx)
+		if err != nil {
+			continue
+		}
+		// We found a proxy!
+		return proxy, nil
+	}
+
+	// No proxies to be found
+	return nil, fmt.Errorf("no new proxies available")
+}
+
+// CacheProxies Get count proxies from our sources and put it in the database for later use
+func (p *Proxier) CacheProxies(count int64) error {
+	// TODO:
+	return nil
+}
+
+func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+	// Try our current proxies in the database
+	proxies, err := p.proxyDB.GetProxies(ctx)
+	// TODO: Randomize which proxies we try
+	for _, proxy := range proxies {
+		resp, err = proxy.DoRequest(ctx, method, URL, body)
+
+		// Check if this was a success
+		if err == nil && resp.StatusCode == 200 {
+			return resp, nil
+		}
+
+		// This wasn't a success, we should ditch this proxy from the database
+		p.proxyDB.DelProxy(ctx, proxy)
+	}
+
+	// If we are here, there are no valid proxies available in the proxyDB
+	// Keep trying to get new proxies
+	for {
+		proxy, err := p.GetProxyFromSources(ctx)
+		if err != nil {
+			// No more proxies to try
+			return nil, fmt.Errorf("no proxies available")
+		}
+
+		// Try this proxy
+		resp, err := proxy.DoRequest(ctx, method, URL, body)
+		if err != nil {
+			continue
+		}
+
+		// It worked!  Add this to our database
+		p.proxyDB.StoreProxy(ctx, proxy)
+
+		return resp, nil
+	}
 }

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-var testingProxy = proxy.Proxy{
+var testingProxy = &proxy.Proxy{
 	IP:       "1.1.1.1",
 	Port:     1000,
 	Protocol: proxy.Socks5,
@@ -23,6 +23,7 @@ func TestDBs(t *testing.T) {
 	}
 	dbs = append(dbs, mongodb)
 
+	// Test DBs
 	for _, proxydb := range dbs {
 		// Test GetProxies
 		if proxies, err := proxydb.GetProxies(context.Background()); err == nil {
