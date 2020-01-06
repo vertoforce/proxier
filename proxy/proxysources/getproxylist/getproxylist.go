@@ -2,9 +2,9 @@ package getproxylist
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
+	"fmt"
 	"proxy/proxy"
+	"proxy/proxy/proxysources/help"
 )
 
 const (
@@ -51,28 +51,23 @@ type Links struct {
 }
 
 func (p *GetProxyListSource) GetProxy(ctx context.Context) (*proxy.Proxy, error) {
-	req, err := http.NewRequest("GET", GetProxyListURL, nil)
+	getProxyListProxy := GetProxyListProxy{}
+	resp, err := help.DoRequestObj(ctx, "GET", GetProxyListURL, nil, &getProxyListProxy)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	getProxyListProxy := &GetProxyListProxy{}
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(getProxyListProxy)
-	if err != nil {
-		return nil, err
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("invalid response code: %d", resp.StatusCode)
 	}
 
 	return getProxyListProxy.Standardize(), nil
 }
 
 func (p *GetProxyListProxy) Standardize() *proxy.Proxy {
-	// TODO: Fill
-	ret := &proxy.Proxy{}
+	ret := &proxy.Proxy{
+		IP:       p.IP,
+		Port:     int16(p.Port),
+		Protocol: proxy.Protocol(p.Protocol),
+	}
 	return ret
 }
