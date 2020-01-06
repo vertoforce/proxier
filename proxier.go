@@ -1,12 +1,12 @@
 // Package proxy helps make http requests with different proxies and user-agents
-package proxy
+package proxier
 
 import (
 	"io"
 	"net/http"
 	"proxy/proxy"
-	"proxy/proxysources/getproxylist"
-	"proxy/proxysources/gimmeproxy"
+	"proxy/proxy/proxysources/getproxylist"
+	"proxy/proxy/proxysources/gimmeproxy"
 )
 
 // DefaultSources are the default proxy sources available
