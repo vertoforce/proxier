@@ -17,10 +17,14 @@ const (
 )
 
 // DefaultSources are the default proxy sources available
-var DefaultSources = []proxy.ProxySource{
-	&getproxylist.GetProxyListSource{},
-	&gimmeproxy.GimmeProxySource{},
-}
+var (
+	DefaultSources = []proxy.ProxySource{
+		&getproxylist.GetProxyListSource{},
+		&gimmeproxy.GimmeProxySource{},
+	}
+
+	AllowedProxyProtocols = []proxy.Protocol{proxy.Socks4Protocol, proxy.Socks4aProtocol, proxy.Socks5Protocol, proxy.Socks5hProtocol, proxy.SocksProtocol}
+)
 
 // Proxier
 type Proxier struct {
@@ -61,14 +65,24 @@ func (p *Proxier) WithProxyDB(proxyDB proxy.ProxyDB) *Proxier {
 // GetProxyFromSources Get a ProxySource from one of our proxySources
 func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error) {
 	var proxy *proxy.Proxy
+proxySourceLoop:
 	for proxySource, _ := range p.proxySources {
-		var err error
-		proxy, err = proxySource.GetProxy(ctx)
-		if err != nil {
-			continue
+		// Try to find a valid proxy from this source
+		for {
+			var err error
+			proxy, err = proxySource.GetProxy(ctx)
+			if err != nil {
+				continue proxySourceLoop
+			}
+
+			// Check if it's our allowed protocols
+			for _, protocol := range AllowedProxyProtocols {
+				if proxy.Protocol == protocol {
+					// We found a proxy!
+					return proxy, nil
+				}
+			}
 		}
-		// We found a proxy!
-		return proxy, nil
 	}
 
 	// No proxies to be found
@@ -76,15 +90,31 @@ func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error)
 }
 
 // CacheProxies Get count proxies from our sources and put it in the database for later use
-func (p *Proxier) CacheProxies(count int64) error {
-	// TODO:
-	return nil
+func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err error) {
+	added = 0
+	for i := 0; i < count; i++ {
+		// Get proxy
+		proxy, err := p.GetProxyFromSources(ctx)
+		if err != nil {
+			// No more proxies available
+			break
+		}
+		// Store proxy
+		err = p.proxyDB.StoreProxy(ctx, proxy)
+		if err != nil {
+			return added, err
+		}
+		added++
+	}
+
+	return added, nil
 }
 
 func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
 	var resp *http.Response
 	var err error
-	// Try our current proxies in the database
+
+	// -- Try our DB Proxies --
 	if p.proxyDB == nil {
 		return nil, fmt.Errorf("no proxydb set and is required")
 	}
@@ -92,8 +122,15 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Randomize which proxies we try
+
+	// Convert to map so we use randomly
+	proxiesMap := map[*proxy.Proxy]bool{}
 	for _, proxy := range proxies {
+		proxiesMap[proxy] = true
+	}
+
+	// TODO: Randomize which proxies we try
+	for proxy, _ := range proxiesMap {
 		resp, err = proxy.DoRequest(ctx, method, URL, body)
 
 		// Check if this was a success
@@ -102,9 +139,10 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 		}
 
 		// This wasn't a success, we should ditch this proxy from the database
-		// p.proxyDB.DelProxy(ctx, proxy)
+		p.proxyDB.DelProxy(ctx, proxy)
 	}
 
+	// -- We need new proxies --
 	// If we are here, there are no valid proxies available in the proxyDB
 	// Keep trying to get new proxies
 	for {
