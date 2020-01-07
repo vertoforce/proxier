@@ -1,4 +1,4 @@
-module proxy
+module github.com/vertoforce/proxier
 
 go 1.13
 
