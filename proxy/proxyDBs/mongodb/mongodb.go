@@ -10,25 +10,32 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoDBProxyDB struct {
+// ProxyDB Is a ProxyDB using mongodb
+type ProxyDB struct {
 	client     *mongo.Client
 	database   *mongo.Database
 	collection *mongo.Collection
 }
 
-func New(ctx context.Context, connectString, database, collection string) (*MongoDBProxyDB, error) {
+// New Create new MongoDBProxyDB from connectString
+func New(ctx context.Context, connectString, database, collection string) (*ProxyDB, error) {
 	clientOptions := options.Client().ApplyURI(connectString)
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	err = client.Ping(ctx, nil)
+	return NewFromDB(ctx, client, database, collection)
+}
+
+// NewFromDB Create new MongoDBProxyDB from mongo client
+func NewFromDB(ctx context.Context, client *mongo.Client, database, collection string) (*ProxyDB, error) {
+	err := client.Ping(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	db := &MongoDBProxyDB{}
+	db := &ProxyDB{}
 	db.client = client
 	db.database = client.Database(database)
 	db.collection = db.database.Collection(collection)
@@ -36,7 +43,8 @@ func New(ctx context.Context, connectString, database, collection string) (*Mong
 	return db, nil
 }
 
-func (db *MongoDBProxyDB) GetProxies(ctx context.Context) ([]*proxy.Proxy, error) {
+// GetProxies Get all proxies in the collection
+func (db *ProxyDB) GetProxies(ctx context.Context) ([]*proxy.Proxy, error) {
 	proxies := []*proxy.Proxy{}
 
 	cursor, err := db.collection.Find(ctx, bson.D{})
@@ -61,17 +69,20 @@ func (db *MongoDBProxyDB) GetProxies(ctx context.Context) ([]*proxy.Proxy, error
 	return proxies, err
 }
 
-func (db *MongoDBProxyDB) StoreProxy(ctx context.Context, proxy *proxy.Proxy) error {
+// StoreProxy Store a proxy in the collection
+func (db *ProxyDB) StoreProxy(ctx context.Context, proxy *proxy.Proxy) error {
 	_, err := db.collection.InsertOne(ctx, proxy)
 	return err
 }
 
-func (db *MongoDBProxyDB) DelProxy(ctx context.Context, proxy *proxy.Proxy) error {
+// DelProxy Delete a proxy in the collection
+func (db *ProxyDB) DelProxy(ctx context.Context, proxy *proxy.Proxy) error {
 	_, err := db.collection.DeleteOne(ctx, proxy)
 	return err
 }
 
-func (db *MongoDBProxyDB) Clear(ctx context.Context) error {
+// Clear Delete ALL proxies from collection
+func (db *ProxyDB) Clear(ctx context.Context) error {
 	_, err := db.collection.DeleteMany(ctx, bson.D{})
 	return err
 }
