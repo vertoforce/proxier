@@ -2,11 +2,12 @@ package proxydbs
 
 import (
 	"context"
-	"proxy/proxy"
-	"proxy/proxy/proxyDBs/inmemory"
-	"proxy/proxy/proxyDBs/mongodb"
 	"reflect"
 	"testing"
+
+	"github.com/vertoforce/proxier/proxy"
+	"github.com/vertoforce/proxier/proxy/proxyDBs/inmemory"
+	"github.com/vertoforce/proxier/proxy/proxyDBs/mongodb"
 )
 
 const (

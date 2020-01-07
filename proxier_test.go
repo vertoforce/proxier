@@ -3,8 +3,9 @@ package proxier
 import (
 	"context"
 	"fmt"
-	"proxy/proxy/proxysources/gimmeproxy"
 	"testing"
+
+	"github.com/vertoforce/proxier/proxy/proxysources/gimmeproxy"
 )
 
 const (

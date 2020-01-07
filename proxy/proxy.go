@@ -10,8 +10,10 @@ import (
 	"h12.io/socks"
 )
 
+// Protocol Proxy protocol
 type Protocol string
 
+// Protocols
 const (
 	Socks5hProtocol Protocol = "socks5h"
 	Socks5Protocol  Protocol = "socks5"
@@ -21,12 +23,14 @@ const (
 	HTTPProtocol    Protocol = "http"
 )
 
+// Proxy Proxy
 type Proxy struct {
 	IP       string
 	Port     uint16
 	Protocol Protocol
 }
 
+// ProxySource is a source of proxies
 type ProxySource interface {
 	GetProxy(ctx context.Context) (*Proxy, error)
 }
@@ -42,10 +46,12 @@ type ProxyDB interface {
 	Clear(context.Context) error
 }
 
+// Address gets address of proxy
 func (p *Proxy) Address() string {
 	return fmt.Sprintf("%s:%d", p.IP, p.Port)
 }
 
+// DoRequest makes a request to this proxy
 func (p *Proxy) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
 	switch p.Protocol {
 	case SocksProtocol, Socks4Protocol, Socks4aProtocol, Socks5Protocol:

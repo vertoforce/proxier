@@ -1,4 +1,4 @@
-// Package proxy helps make http requests with different proxies and user-agents
+// Package proxier helps make http requests with different proxies and user-agents
 package proxier
 
 import (
@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"proxy/proxy"
-	"proxy/proxy/proxyDBs/inmemory"
-	"proxy/proxy/proxysources/getproxylist"
-	"proxy/proxy/proxysources/gimmeproxy"
 	"time"
+
+	"github.com/vertoforce/proxier/proxy"
+	"github.com/vertoforce/proxier/proxy/proxyDBs/inmemory"
+	"github.com/vertoforce/proxier/proxy/proxysources/getproxylist"
+	"github.com/vertoforce/proxier/proxy/proxysources/gimmeproxy"
 )
 
+// Defaults
 const (
 	DefaultProxyDBTimeout = time.Second * 5
 	DefaultProxyTimeout   = time.Second * 4
@@ -28,7 +30,7 @@ var (
 	AllowedProxyProtocols = []proxy.Protocol{proxy.Socks4Protocol, proxy.Socks4aProtocol, proxy.Socks5Protocol, proxy.Socks5hProtocol, proxy.SocksProtocol}
 )
 
-// Proxier
+// Proxier A proxier object
 type Proxier struct {
 	// proxySources are sources of proxies, using a map so we randomize our use of each
 	proxySources map[proxy.ProxySource]bool
@@ -80,7 +82,7 @@ func (p *Proxier) WithProxies(ctx context.Context, proxies ...*proxy.Proxy) *Pro
 func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error) {
 	var proxy *proxy.Proxy
 proxySourceLoop:
-	for proxySource, _ := range p.proxySources {
+	for proxySource := range p.proxySources {
 		// Try to find a valid proxy from this source
 		for {
 			var err error
@@ -125,8 +127,23 @@ func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err e
 }
 
 // DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that returns 200 OK
-// TODO: Do not reply just on 200 OK as indication the proxy "worked"
 func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
+	return p.DoRequestExtra(ctx, method, URL, body, false)
+}
+
+// DoRequestExtra Same as DoRequest with additional TryNoProxyFirst
+func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body io.Reader, TryNoProxyFirst bool) (*http.Response, error) {
+	// -- Try default request --
+	if TryNoProxyFirst {
+		req, err := http.NewRequestWithContext(ctx, method, URL, body)
+		if err == nil {
+			resp, err := http.DefaultClient.Do(req)
+			if err == nil && responseOK(resp) {
+				return resp, nil
+			}
+		}
+	}
+
 	// -- Try our DB Proxies --
 
 	if p.proxyDB == nil {
@@ -143,12 +160,11 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 		proxiesMap[proxy] = true
 	}
 
-	for proxy, _ := range proxiesMap {
+	for proxy := range proxiesMap {
 		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
 
-		// TODO: Change this from checking 200
 		// Check if this was a success
-		if err == nil && resp.StatusCode == 200 {
+		if err == nil && responseOK(resp) {
 			return resp, nil
 		}
 
@@ -170,9 +186,8 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 
 		// Try this proxy
 		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
-		// TODO: Change this from checking 200
 		// Check if this was a success
-		if err != nil || resp.StatusCode != 200 {
+		if err != nil || !responseOK(resp) {
 			continue
 		}
 
@@ -187,4 +202,12 @@ func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, meth
 	ctx, cancel := context.WithTimeout(ctx, p.ProxyTimeout)
 	defer cancel()
 	return proxy.DoRequest(ctx, method, URL, body)
+}
+
+func responseOK(resp *http.Response) bool {
+	// TODO: Change this from checking 200
+	if resp.StatusCode == 200 {
+		return true
+	}
+	return false
 }

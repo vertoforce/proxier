@@ -3,9 +3,10 @@ package gimmeproxy
 import (
 	"context"
 	"fmt"
-	"proxy/proxy"
-	"proxy/proxy/proxysources/help"
 	"strconv"
+
+	"github.com/vertoforce/proxier/proxy"
+	"github.com/vertoforce/proxier/proxy/proxysources/help"
 )
 
 const (

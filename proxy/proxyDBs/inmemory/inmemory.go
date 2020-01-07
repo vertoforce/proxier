@@ -2,7 +2,8 @@ package inmemory
 
 import (
 	"context"
-	"proxy/proxy"
+
+	"github.com/vertoforce/proxier/proxy"
 )
 
 type InMemoryProxyDB struct {

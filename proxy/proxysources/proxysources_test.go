@@ -1,14 +1,13 @@
 package proxysources
 
-import "testing"
+import (
+	"context"
+	"testing"
 
-import "proxy/proxy"
-
-import "proxy/proxy/proxysources/gimmeproxy"
-
-import "proxy/proxy/proxysources/getproxylist"
-
-import "context"
+	"github.com/vertoforce/proxier/proxy"
+	"github.com/vertoforce/proxier/proxy/proxysources/getproxylist"
+	"github.com/vertoforce/proxier/proxy/proxysources/gimmeproxy"
+)
 
 var sources = []proxy.ProxySource{
 	&gimmeproxy.GimmeProxySource{},

@@ -3,8 +3,9 @@ package getproxylist
 import (
 	"context"
 	"fmt"
-	"proxy/proxy"
-	"proxy/proxy/proxysources/help"
+
+	"github.com/vertoforce/proxier/proxy"
+	"github.com/vertoforce/proxier/proxy/proxysources/help"
 )
 
 const (

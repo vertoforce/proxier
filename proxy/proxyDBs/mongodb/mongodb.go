@@ -3,8 +3,8 @@ package mongodb
 
 import (
 	"context"
-	"proxy/proxy"
 
+	"github.com/vertoforce/proxier/proxy"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
