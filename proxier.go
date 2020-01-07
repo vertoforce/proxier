@@ -144,6 +144,7 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 	for proxy, _ := range proxiesMap {
 		resp, err = proxy.DoRequest(ctx, method, URL, body)
 
+		// TODO: Change this
 		// Check if this was a success
 		if err == nil && resp.StatusCode == 200 {
 			return resp, nil
@@ -165,7 +166,9 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 
 		// Try this proxy
 		resp, err := proxy.DoRequest(ctx, method, URL, body)
-		if err != nil {
+		// TODO: Change this from checking 200
+		// Check if this was a success
+		if err != nil || resp.StatusCode != 200 {
 			continue
 		}
 
