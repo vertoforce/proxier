@@ -3,6 +3,7 @@ package proxier
 import (
 	"context"
 	"fmt"
+	"proxy/proxy/proxysources/gimmeproxy"
 	"testing"
 )
 
@@ -36,4 +37,20 @@ func TestCacheProxies(t *testing.T) {
 	if added == 0 {
 		t.Errorf("Didn't add any proxies")
 	}
+}
+
+// This test sees how long we can make requests to one of our proxy source URLs
+// Normally the URL will start blocking after 10 requests, but that's we use proxies
+// It's a bit meta
+func TestMakeRequestThatGetsDenied(t *testing.T) {
+	proxier := New()
+	for {
+		resp, err := proxier.DoRequest(context.Background(), "GET", gimmeproxy.GimmeProxyURL, nil)
+		if err != nil {
+			fmt.Printf("Error %s: \n", err.Error())
+			break
+		}
+		fmt.Printf("Response code: %d\n", resp.StatusCode)
+	}
+
 }

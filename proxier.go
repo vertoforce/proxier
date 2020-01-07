@@ -15,6 +15,7 @@ import (
 
 const (
 	DefaultProxyDBTimeout = time.Second * 5
+	DefaultProxyTimeout   = time.Second * 5
 )
 
 // DefaultSources are the default proxy sources available
@@ -33,12 +34,15 @@ type Proxier struct {
 	proxySources map[proxy.ProxySource]bool
 	// proxyDB is where we store the proxies we know about
 	proxyDB proxy.ProxyDB
+	// ProxyTimeout is how long to try a proxy before giving up
+	ProxyTimeout time.Duration
 }
 
 // NewBare Creates a new bare proxier with no proxy sources
 func NewBare() *Proxier {
 	p := &Proxier{}
 	p.proxySources = map[proxy.ProxySource]bool{}
+	p.ProxyTimeout = DefaultProxyDBTimeout
 	return p
 }
 
@@ -123,10 +127,8 @@ func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err e
 // DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that returns 200 OK
 // TODO: Do not reply just on 200 OK as indication the proxy "worked"
 func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-
 	// -- Try our DB Proxies --
+
 	if p.proxyDB == nil {
 		return nil, fmt.Errorf("no proxydb set and is required")
 	}
@@ -142,9 +144,9 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 	}
 
 	for proxy, _ := range proxiesMap {
-		resp, err = proxy.DoRequest(ctx, method, URL, body)
+		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
 
-		// TODO: Change this
+		// TODO: Change this from checking 200
 		// Check if this was a success
 		if err == nil && resp.StatusCode == 200 {
 			return resp, nil
@@ -154,7 +156,8 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 		p.proxyDB.DelProxy(ctx, proxy)
 	}
 
-	// -- We need new proxies --
+	// -- Get new proxies --
+
 	// If we are here, there are no valid proxies available in the proxyDB
 	// Keep trying to get new proxies
 	for {
@@ -165,7 +168,7 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 		}
 
 		// Try this proxy
-		resp, err := proxy.DoRequest(ctx, method, URL, body)
+		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
 		// TODO: Change this from checking 200
 		// Check if this was a success
 		if err != nil || resp.StatusCode != 200 {
@@ -177,4 +180,10 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 
 		return resp, nil
 	}
+}
+
+func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, method, URL string, body io.Reader) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, p.ProxyTimeout)
+	defer cancel()
+	return proxy.DoRequest(ctx, method, URL, body)
 }
