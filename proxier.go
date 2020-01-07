@@ -60,6 +60,14 @@ func (p *Proxier) WithProxyDB(proxyDB proxy.ProxyDB) *Proxier {
 	return p
 }
 
+// WithProxies Adds proxies to our DB
+func (p *Proxier) WithProxies(ctx context.Context, proxies ...*proxy.Proxy) *Proxier {
+	for _, proxy := range proxies {
+		p.proxyDB.StoreProxy(ctx, proxy)
+	}
+	return p
+}
+
 // -- functionality --
 
 // GetProxyFromSources Get a ProxySource from one of our proxySources
@@ -129,7 +137,6 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 		proxiesMap[proxy] = true
 	}
 
-	// TODO: Randomize which proxies we try
 	for proxy, _ := range proxiesMap {
 		resp, err = proxy.DoRequest(ctx, method, URL, body)
 
