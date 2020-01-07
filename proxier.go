@@ -81,14 +81,14 @@ func (p *Proxier) WithProxies(ctx context.Context, proxies ...*proxy.Proxy) *Pro
 // This will continue to try and get proxies from each source until it finds a SOCKS proxy
 func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error) {
 	var proxy *proxy.Proxy
-proxySourceLoop:
 	for proxySource := range p.proxySources {
 		// Try to find a valid proxy from this source
 		for {
 			var err error
 			proxy, err = proxySource.GetProxy(ctx)
 			if err != nil {
-				continue proxySourceLoop
+				// This proxy source has no more proxies (for now)
+				break
 			}
 
 			// Check if it's our allowed protocols
