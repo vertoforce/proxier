@@ -33,8 +33,8 @@ This example is with MongoDB
 ```go
 import "github.com/vertoforce/proxier/proxy/proxyDBs/mongodb"
 
-mongoDBProxyDB, _ := mongodb.New(context.Background(), MongoDBURL, MongoDB, MongoCollection)
-proxier := New().WithProxyDB(mongoDBProxyDB)
+ProxyDB, _ := mongodb.New(context.Background(), MongoDBURL, MongoDB, MongoCollection)
+proxier := New().WithProxyDB(ProxyDB)
 // Use proxier...
 ```
 
