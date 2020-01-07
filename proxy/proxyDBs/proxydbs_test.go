@@ -37,13 +37,13 @@ var testingProxies = []*proxy.Proxy{
 func TestDBs(t *testing.T) {
 	// Init DBs
 	var dbs = []proxy.ProxyDB{}
-	mongodb, err := mongodb.New(context.Background(), MongoDBURL, MongoDB, MongoCollection)
+	mongo, err := mongodb.New(context.Background(), MongoDBURL, MongoDB, MongoCollection)
 	if err != nil {
 		t.Errorf("Error creating mongodb")
 		return
 	}
 	dbs = append(dbs, inmemory.New())
-	dbs = append(dbs, mongodb)
+	dbs = append(dbs, mongo)
 
 	// Test DBs
 	for _, proxydb := range dbs {
