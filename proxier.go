@@ -15,7 +15,7 @@ import (
 
 const (
 	DefaultProxyDBTimeout = time.Second * 5
-	DefaultProxyTimeout   = time.Second * 5
+	DefaultProxyTimeout   = time.Second * 4
 )
 
 // DefaultSources are the default proxy sources available
@@ -153,6 +153,7 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 		}
 
 		// This wasn't a success, we should ditch this proxy from the database
+		// TODO: Change this to delete after 3 failures or something
 		p.proxyDB.DelProxy(ctx, proxy)
 	}
 
