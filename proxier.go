@@ -30,6 +30,10 @@ var (
 	AllowedProxyProtocols = []proxy.Protocol{proxy.Socks4Protocol, proxy.Socks4aProtocol, proxy.Socks5Protocol, proxy.Socks5hProtocol, proxy.SocksProtocol}
 )
 
+// CheckResponseFunc is a func given a http response it returns true if the request succeeded
+// By default proxier looks for a HTTP 200
+type CheckResponseFunc func(*http.Response) bool
+
 // Proxier A proxier object
 type Proxier struct {
 	// proxySources are sources of proxies, using a map so we randomize our use of each
@@ -128,17 +132,19 @@ func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err e
 
 // DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that returns 200 OK
 func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
-	return p.DoRequestExtra(ctx, method, URL, body, false)
+	return p.DoRequestExtra(ctx, method, URL, body, false, DefaultCheckResponseFunc)
 }
 
-// DoRequestExtra Same as DoRequest with additional TryNoProxyFirst
-func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body io.Reader, TryNoProxyFirst bool) (*http.Response, error) {
+// DoRequestExtra Same as DoRequest with additional
+/// tryNoProxyFirst to try a normal request first
+// and also a checkResponeFunc to check if the response was successful
+func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body io.Reader, tryNoProxyFirst bool, checkResponseFunc CheckResponseFunc) (*http.Response, error) {
 	// -- Try default request --
-	if TryNoProxyFirst {
+	if tryNoProxyFirst {
 		req, err := http.NewRequestWithContext(ctx, method, URL, body)
 		if err == nil {
 			resp, err := http.DefaultClient.Do(req)
-			if err == nil && responseOK(resp) {
+			if err == nil && checkResponseFunc(resp) {
 				return resp, nil
 			}
 		}
@@ -164,7 +170,7 @@ func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body i
 		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
 
 		// Check if this was a success
-		if err == nil && responseOK(resp) {
+		if err == nil && checkResponseFunc(resp) {
 			return resp, nil
 		}
 
@@ -187,13 +193,13 @@ func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body i
 		// Try this proxy
 		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
 		// Check if this was a success
-		if err != nil || !responseOK(resp) {
+		if err != nil || !checkResponseFunc(resp) {
 			continue
 		}
 
 		// It worked!  Add this to our database
 		p.proxyDB.StoreProxy(ctx, proxy)
-
+		// Return response
 		return resp, nil
 	}
 }
@@ -204,7 +210,8 @@ func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, meth
 	return proxy.DoRequest(ctx, method, URL, body)
 }
 
-func responseOK(resp *http.Response) bool {
+// DefaultCheckResponseFunc Just checks for resp.StatusCode == 200
+func DefaultCheckResponseFunc(resp *http.Response) bool {
 	// TODO: Change this from checking 200
 	if resp.StatusCode == 200 {
 		return true
