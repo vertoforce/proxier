@@ -1,4 +1,4 @@
-// Package proxier helps make http requests with different proxies and user-agents
+// Package proxier finds proxies and makes requests through them for web crawling
 package proxier
 
 import (
