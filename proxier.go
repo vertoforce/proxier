@@ -184,7 +184,7 @@ func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body i
 	// -- Get new proxies --
 
 	// If we are here, there are no valid proxies available in the proxyDB
-	// Keep trying to get new proxies
+	// Keep trying to get new proxies forever (until we run out of proxies from our proxy sources)
 	for {
 		proxy, err := p.GetProxyFromSources(ctx)
 		if err != nil {
