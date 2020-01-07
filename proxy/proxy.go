@@ -39,6 +39,7 @@ type ProxyDB interface {
 	GetProxies(context.Context) ([]*Proxy, error)
 	StoreProxy(context.Context, *Proxy) error
 	DelProxy(context.Context, *Proxy) error
+	Clear(context.Context) error
 }
 
 func (p *Proxy) Address() string {

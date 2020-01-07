@@ -70,3 +70,8 @@ func (db *MongoDBProxyDB) DelProxy(ctx context.Context, proxy *proxy.Proxy) erro
 	_, err := db.collection.DeleteOne(ctx, proxy)
 	return err
 }
+
+func (db *MongoDBProxyDB) Clear(ctx context.Context) error {
+	_, err := db.collection.DeleteMany(ctx, bson.D{})
+	return err
+}
