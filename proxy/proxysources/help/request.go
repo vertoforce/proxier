@@ -14,10 +14,10 @@ func DoRequestObj(ctx context.Context, method, URL string, body interface{}, res
 	// Create body
 	if body != nil {
 		bodyBytes, err := json.Marshal(body)
-		bodyReader.Write(bodyBytes)
 		if err != nil {
 			return nil, err
 		}
+		bodyReader.Write(bodyBytes)
 	}
 
 	// Make request
