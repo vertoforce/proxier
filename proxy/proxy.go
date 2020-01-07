@@ -79,11 +79,10 @@ func (p *Proxy) doRequestSocks(ctx context.Context, method, URL string, body io.
 	httpClient := &http.Client{Transport: tr}
 
 	// Create request
-	req, err := http.NewRequest("GET", URL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", URL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
 
 	// Make request
 	resp, err := httpClient.Do(req)
@@ -102,11 +101,10 @@ func (p *Proxy) doRequestHTTP(ctx context.Context, method, URL string, body io.R
 	httpClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 
 	// Create request
-	req, err := http.NewRequest("GET", URL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", URL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
 
 	// Make request
 	resp, err := httpClient.Do(req)
