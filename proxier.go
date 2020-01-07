@@ -139,6 +139,8 @@ func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Rea
 /// tryNoProxyFirst to try a normal request first
 // and also a checkResponeFunc to check if the response was successful
 func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body io.Reader, tryNoProxyFirst bool, checkResponseFunc CheckResponseFunc) (*http.Response, error) {
+	// TODO: Add max request count to avoid endless requesting for a down server, or a server that always returns 403
+
 	// -- Try default request --
 	if tryNoProxyFirst {
 		req, err := http.NewRequestWithContext(ctx, method, URL, body)
@@ -210,11 +212,23 @@ func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, meth
 	return proxy.DoRequest(ctx, method, URL, body)
 }
 
-// DefaultCheckResponseFunc Just checks for resp.StatusCode == 200
+// DefaultCheckResponseFunc Returns true if status code is 200 OR 500-599, false if status code is 429 OR 403, true otherwise
 func DefaultCheckResponseFunc(resp *http.Response) bool {
 	// TODO: Change this from checking 200
 	if resp.StatusCode == 200 {
 		return true
 	}
-	return false
+
+	// If there is a server error, it's not the proxies fault, the request succeeded
+	if resp.StatusCode >= 500 && resp.StatusCode <= 599 {
+		return true
+	}
+
+	// These typically indicate a failure
+	if resp.StatusCode == 429 || resp.StatusCode == 403 {
+		return false
+	}
+
+	// Return true otherwise
+	return true
 }
