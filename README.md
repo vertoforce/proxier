@@ -36,6 +36,11 @@ proxier := New().WithProxyDB(mongoDBProxyDB)
 // Use proxier...
 ```
 
+## Proxy Sources
+
+- [Gimme Proxy](https://gimmeproxy.com/api/getProxy)
+- [GetProxyList](https://api.getproxylist.com/proxy)
+
 ## Notes
 
 - This only saves socks5, socks5h, socks4 and socks4a proxies as http proxies don't allow for https
