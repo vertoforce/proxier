@@ -11,6 +11,8 @@ Proxier helps avoid
 
 ### Super Simple Usage
 
+This will make a new proxier automatically finding proxies to use, and then making a request through the proxy.
+
 ```go
 proxier := New()
 resp, _ := proxier.DoRequest(context.Background(), "GET", "https://google.com", nil)
@@ -21,7 +23,7 @@ resp, _ := proxier.DoRequest(context.Background(), "GET", "https://google.com", 
 
 The APIs used to find proxies only allow about 10 requests per day.  So if you want to store the found proxies, you can use a DB.
 
-By default it uses an in memory cache. However for my usage I wanted this to work across a horizontally scalable api.  That way each microservice can have access to valid proxies, instead of each instance requesting proxies from the API and quickly using up the quota.
+By default proxier uses an in memory cache. However for my usage I wanted this to work across a horizontally scalable api.  That way each microservice can have access to valid proxies, instead of each instance requesting proxies from the API and quickly using up the quota.
 Also if each API was storing valid proxies in memory that would make each API stateful, and I prefer my APIs to be stateless.
 
 You can use your own proxy cache by implementing the `proxy.ProxyDB` interface
