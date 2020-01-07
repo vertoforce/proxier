@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"proxy/proxy"
+	"proxy/proxy/proxyDBs/inmemory"
 	"proxy/proxy/proxysources/getproxylist"
 	"proxy/proxy/proxysources/gimmeproxy"
 	"time"
@@ -18,7 +19,7 @@ const (
 
 // DefaultSources are the default proxy sources available
 var (
-	DefaultSources = []proxy.ProxySource{
+	DefaultProxySources = []proxy.ProxySource{
 		&getproxylist.GetProxyListSource{},
 		&gimmeproxy.GimmeProxySource{},
 	}
@@ -41,9 +42,9 @@ func NewBare() *Proxier {
 	return p
 }
 
-// New Creates a new proxier with default proxy sources and no proxyDB
+// New Creates a new proxier with default proxy sources and in memory proxyDB
 func New() *Proxier {
-	return NewBare().WithProxySources(DefaultSources...)
+	return NewBare().WithProxySources(DefaultProxySources...).WithProxyDB(inmemory.New())
 }
 
 // WithProxySources Add proxy sources
