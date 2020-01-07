@@ -42,7 +42,7 @@ func TestCacheProxies(t *testing.T) {
 
 // This test sees how long we can make requests to one of our proxy source URLs
 // Normally the URL will start blocking after 10 requests, but that's we use proxies
-// It's a bit meta
+// It's a bit meta (using proxy to make request to proxy source)
 func TestMakeRequestThatGetsDenied(t *testing.T) {
 	proxier := New()
 	for {
