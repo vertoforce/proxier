@@ -43,6 +43,20 @@ proxier := New().WithProxyDB(mongoDBProxyDB)
 - [Gimme Proxy](https://gimmeproxy.com/api/getProxy)
 - [GetProxyList](https://api.getproxylist.com/proxy)
 
+## How it works
+
+1. When you create a new Proxier object it contains no proxies.
+2. When you make your first request, it will check the ProxyDB (in memory by default) for available proxies.
+    - It will loop through the proxies _randomly_ and try each until it finds one that works.
+    - If one "succeeds", it will return the `*http.Response` from that proxy
+3. If no more proxies exist in the DB it will try to fetch one from a ProxySource
+    - It will loop over proxy sources randomly until it finds a new proxy
+    - It will try the proxy to see if it "succeeds"
+    - If it does, it will save that to the DB and return the `*http.Response`
+
+"succeeds" is in quotes because for a request to succeed it depends on what you're expecting.  By default a proxier object checks for http `200`.  You can pass in your own function to check a response by calling `DoRequestExtra` with your own `CheckResponseFunc`.
+
 ## Notes
 
+- Depending on if you cached proxies or how long it takes to find a socks proxy, it could take around 15 seconds to make a request
 - This only saves socks5, socks5h, socks4 and socks4a proxies as http proxies don't allow for https
