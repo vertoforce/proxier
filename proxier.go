@@ -42,6 +42,8 @@ type Proxier struct {
 	proxyDB proxy.ProxyDB
 	// ProxyTimeout is how long to try a proxy before giving up
 	ProxyTimeout time.Duration
+	// True to check no proxy first by default
+	TryNoProxyFirst bool
 }
 
 // NewBare Creates a new bare proxier with no proxy sources
@@ -132,7 +134,7 @@ func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err e
 
 // DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that passes DefaultCheckResponseFunc
 func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
-	return p.DoRequestExtra(ctx, method, URL, body, false, DefaultCheckResponseFunc)
+	return p.DoRequestExtra(ctx, method, URL, body, p.TryNoProxyFirst, DefaultCheckResponseFunc)
 }
 
 // DoRequestExtra Same as DoRequest with additional
