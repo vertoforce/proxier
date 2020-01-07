@@ -72,6 +72,7 @@ func (p *Proxier) WithProxies(ctx context.Context, proxies ...*proxy.Proxy) *Pro
 // -- functionality --
 
 // GetProxyFromSources Get a ProxySource from one of our proxySources
+// This will continue to try and get proxies from each source until it finds a SOCKS proxy
 func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error) {
 	var proxy *proxy.Proxy
 proxySourceLoop:
@@ -98,7 +99,7 @@ proxySourceLoop:
 	return nil, fmt.Errorf("no new proxies available")
 }
 
-// CacheProxies Get count proxies from our sources and put it in the database for later use
+// CacheProxies Get "count" proxies from our sources and put each in the database for later use
 func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err error) {
 	added = 0
 	for i := 0; i < count; i++ {
@@ -119,6 +120,8 @@ func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err e
 	return added, nil
 }
 
+// DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that returns 200 OK
+// TODO: Do not reply just on 200 OK as indication the proxy "worked"
 func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
 	var resp *http.Response
 	var err error
