@@ -60,3 +60,7 @@ proxier := New().WithProxyDB(mongoDBProxyDB)
 
 - Depending on if you cached proxies or how long it takes to find a socks proxy, it could take around 15 seconds to make a request
 - This only saves socks5, socks5h, socks4 and socks4a proxies as http proxies don't allow for https
+
+## Known bugs
+
+- If the target server times out, there is undefined behavior, not sure how to handle that yet
