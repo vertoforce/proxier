@@ -3,24 +3,15 @@ package proxier
 import (
 	"context"
 	"fmt"
-	"proxy/proxy/proxyDBs/mongodb"
 	"testing"
 )
 
 const (
-	TestURL         = "https://www.meetup.com/Huey-Spheres-by-GoHuey-com/events/kjwzvqyzqbgc"
-	MongoDBURL      = "mongodb://root:pass@localhost"
-	MongoDB         = "proxies"
-	MongoCollection = "proxies"
+	TestURL = "https://www.meetup.com/Huey-Spheres-by-GoHuey-com/events/kjwzvqyzqbgc"
 )
 
 func TestDoRequest(t *testing.T) {
-	mongodbProxyDB, err := mongodb.New(context.Background(), MongoDBURL, MongoDB, MongoCollection)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	proxier := New().WithProxyDB(mongodbProxyDB)
+	proxier := New()
 	resp, err := proxier.DoRequest(context.Background(), "GET", TestURL, nil)
 	if err != nil {
 		t.Error(err)
@@ -36,13 +27,8 @@ func TestDoRequest(t *testing.T) {
 }
 
 func TestCacheProxies(t *testing.T) {
-	mongodbProxyDB, err := mongodb.New(context.Background(), MongoDBURL, MongoDB, MongoCollection)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	proxier := New().WithProxyDB(mongodbProxyDB)
-	added, err := proxier.CacheProxies(context.Background(), 10)
+	proxier := New()
+	added, err := proxier.CacheProxies(context.Background(), 5)
 	if err != nil {
 		t.Error(err)
 	}
