@@ -130,7 +130,7 @@ func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err e
 	return added, nil
 }
 
-// DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that returns 200 OK
+// DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that passes DefaultCheckResponseFunc
 func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
 	return p.DoRequestExtra(ctx, method, URL, body, false, DefaultCheckResponseFunc)
 }
