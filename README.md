@@ -1,5 +1,8 @@
 # Proxier
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/vertoforce/proxier)](https://goreportcard.com/report/github.com/vertoforce/proxier)
+[![Documentation](https://godoc.org/github.com/vertoforce/proxier?status.svg)](https://godoc.org/github.com/vertoforce/proxier)
+
 Proxier finds proxies and makes requests through them for web crawling.
 
 Proxier helps avoid
