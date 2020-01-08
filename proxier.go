@@ -208,10 +208,18 @@ func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body i
 	}
 }
 
+// makeProxyRequest makes a proxy request or times out if it takes too long
 func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, method, URL string, body io.Reader) (*http.Response, error) {
+	// TODO: This complains about a context leak, but is it really a problem?
+	// I cannot cancel this as it would cause reading from the body to fail
 	proxyCtx, cancel := context.WithTimeout(ctx, p.ProxyTimeout)
-	defer cancel()
-	return proxy.DoRequest(proxyCtx, method, URL, body)
+	resp, err := proxy.DoRequest(proxyCtx, method, URL, body)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 // DefaultCheckResponseFunc Returns true if status code is 200 OR 500-599, false if status code is 429 OR 403, true otherwise
