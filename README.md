@@ -5,7 +5,7 @@
 
 Proxier finds proxies and makes requests through them for web crawling.
 
-Proxier helps avoid
+Proxier helps avoid web crawler detection, commonly associated with these response codes:
 
 - Too many requests (HTTP 429)
 - Crawler detection (HTTP 403 or otherwise)
