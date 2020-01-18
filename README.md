@@ -18,7 +18,7 @@ This will make a new proxier automatically finding proxies to use, and then maki
 
 ```go
 proxier := New()
-resp, _ := proxier.DoRequest(context.Background(), "GET", "https://google.com", nil)
+resp, _ := proxier.DoRequestRaw(context.Background(), "GET", "https://google.com", nil)
 // Do something with resp
 ```
 
