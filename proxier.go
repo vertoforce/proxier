@@ -132,25 +132,32 @@ func (p *Proxier) CacheProxies(ctx context.Context, count int) (added int, err e
 	return added, nil
 }
 
+// DoRequestRaw Do a request using a random proxy in our DB and keep cycling through proxies until we find one that passes DefaultCheckResponseFunc
+func (p *Proxier) DoRequestRaw(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, URL, body)
+	if err != nil {
+		return nil, err
+	}
+	return p.DoRequest(ctx, req)
+}
+
 // DoRequest Do a request using a random proxy in our DB and keep cycling through proxies until we find one that passes DefaultCheckResponseFunc
-func (p *Proxier) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
-	return p.DoRequestExtra(ctx, method, URL, body, p.TryNoProxyFirst, DefaultCheckResponseFunc)
+func (p *Proxier) DoRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
+	return p.DoRequestExtra(ctx, req, p.TryNoProxyFirst, DefaultCheckResponseFunc)
 }
 
 // DoRequestExtra Same as DoRequest with additional
 /// tryNoProxyFirst to try a normal request first
 // and also a checkResponeFunc to check if the response was successful
-func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body io.Reader, tryNoProxyFirst bool, checkResponseFunc CheckResponseFunc) (*http.Response, error) {
+func (p *Proxier) DoRequestExtra(ctx context.Context, req *http.Request, tryNoProxyFirst bool, checkResponseFunc CheckResponseFunc) (*http.Response, error) {
 	// TODO: Add max request count to avoid endless requesting for a down server, or a server that always returns 403
 
+	req = req.WithContext(ctx)
 	// -- Try default request --
 	if tryNoProxyFirst {
-		req, err := http.NewRequestWithContext(ctx, method, URL, body)
-		if err == nil {
-			resp, err := http.DefaultClient.Do(req)
-			if err == nil && checkResponseFunc(resp) {
-				return resp, nil
-			}
+		resp, err := http.DefaultClient.Do(req)
+		if err == nil && checkResponseFunc(resp) {
+			return resp, nil
 		}
 	}
 
@@ -171,7 +178,7 @@ func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body i
 	}
 
 	for proxy := range proxiesMap {
-		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
+		resp, err := p.makeProxyRequest(ctx, proxy, req)
 
 		// Check if this was a success
 		if err == nil && checkResponseFunc(resp) {
@@ -195,7 +202,7 @@ func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body i
 		}
 
 		// Try this proxy
-		resp, err := p.makeProxyRequest(ctx, proxy, method, URL, body)
+		resp, err := p.makeProxyRequest(ctx, proxy, req)
 		// Check if this was a success
 		if err != nil || !checkResponseFunc(resp) {
 			continue
@@ -209,7 +216,7 @@ func (p *Proxier) DoRequestExtra(ctx context.Context, method, URL string, body i
 }
 
 // makeProxyRequest makes a proxy request or times out if it takes too long
-func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, method, URL string, body io.Reader) (resp *http.Response, err error) {
+func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, req *http.Request) (resp *http.Response, err error) {
 	// TODO: This complains about a context leak, but is it really a problem?
 	// I cannot cancel this as it would cause reading from the body to fail
 	proxyCtx, cancel := context.WithCancel(ctx)
@@ -217,7 +224,7 @@ func (p *Proxier) makeProxyRequest(ctx context.Context, proxy *proxy.Proxy, meth
 	// Start request in background
 	done := make(chan int)
 	go func() {
-		resp, err = proxy.DoRequest(proxyCtx, method, URL, body)
+		resp, err = proxy.DoRequest(proxyCtx, req)
 		done <- 1
 	}()
 

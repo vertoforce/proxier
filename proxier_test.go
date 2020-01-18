@@ -14,7 +14,7 @@ const (
 
 func TestDoRequest(t *testing.T) {
 	proxier := New()
-	resp, err := proxier.DoRequest(context.Background(), "GET", TestURL, nil)
+	resp, err := proxier.DoRequestRaw(context.Background(), "GET", TestURL, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -46,7 +46,7 @@ func TestCacheProxies(t *testing.T) {
 func TestMakeRequestThatGetsDenied(t *testing.T) {
 	proxier := New()
 	for {
-		resp, err := proxier.DoRequest(context.Background(), "GET", gimmeproxy.GimmeProxyURL, nil)
+		resp, err := proxier.DoRequestRaw(context.Background(), "GET", gimmeproxy.GimmeProxyURL, nil)
 		if err != nil {
 			fmt.Printf("Error %s: \n", err.Error())
 			break

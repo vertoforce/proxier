@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 
@@ -52,7 +51,7 @@ func (p *Proxy) Address() string {
 }
 
 // DoRequest makes a request to this proxy
-func (p *Proxy) DoRequest(ctx context.Context, method, URL string, body io.Reader) (*http.Response, error) {
+func (p *Proxy) DoRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 	// First create a http client
 	var httpClient *http.Client
 	switch p.Protocol {
@@ -71,7 +70,7 @@ func (p *Proxy) DoRequest(ctx context.Context, method, URL string, body io.Reade
 		tr := &http.Transport{Dial: dialSocksProxy}
 		httpClient = &http.Client{Transport: tr}
 	case HTTPProtocol:
-		proxyURL, err := url.Parse(URL)
+		proxyURL, err := url.Parse(fmt.Sprintf("http://%s", p.Address()))
 		if err != nil {
 			return nil, err
 		}
@@ -80,15 +79,11 @@ func (p *Proxy) DoRequest(ctx context.Context, method, URL string, body io.Reade
 		return nil, fmt.Errorf("No function to use this protocol")
 	}
 
-	return p.doRequestWithHTTPClient(ctx, httpClient, method, URL, body)
+	return p.doRequestWithHTTPClient(ctx, httpClient, req)
 }
 
-func (p *Proxy) doRequestWithHTTPClient(ctx context.Context, httpClient *http.Client, method, URL string, body io.Reader) (*http.Response, error) {
-	// Create request
-	req, err := http.NewRequestWithContext(ctx, "GET", URL, nil)
-	if err != nil {
-		return nil, err
-	}
+func (p *Proxy) doRequestWithHTTPClient(ctx context.Context, httpClient *http.Client, req *http.Request) (*http.Response, error) {
+	req = req.WithContext(ctx)
 
 	// Make request
 	resp, err := httpClient.Do(req)
