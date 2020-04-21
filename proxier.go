@@ -26,8 +26,6 @@ var (
 		&getproxylist.GetProxyListSource{},
 		&gimmeproxy.GimmeProxySource{},
 	}
-
-	AllowedProxyProtocols = []proxy.Protocol{proxy.Socks4Protocol, proxy.Socks4aProtocol, proxy.Socks5Protocol, proxy.Socks5hProtocol, proxy.SocksProtocol}
 )
 
 // CheckResponseFunc is a func given a http response it returns true if the request succeeded
@@ -44,6 +42,9 @@ type Proxier struct {
 	ProxyTimeout time.Duration
 	// True to check no proxy first by default
 	TryNoProxyFirst bool
+
+	// Allowed proxy protocols to get when fetching a proxy, note that
+	AllowedProxyProtocols []proxy.Protocol
 }
 
 // NewBare Creates a new bare proxier with no proxy sources
@@ -56,7 +57,19 @@ func NewBare() *Proxier {
 
 // New Creates a new proxier with default proxy sources and in memory proxyDB
 func New() *Proxier {
-	return NewBare().WithProxySources(DefaultProxySources...).WithProxyDB(inmemory.New())
+	return NewBare().
+		WithProxySources(DefaultProxySources...).
+		WithProxyDB(inmemory.New()).
+		WithAllowedProxyProtocols(proxy.Socks4Protocol, proxy.Socks4aProtocol, proxy.Socks5Protocol, proxy.Socks5hProtocol, proxy.SocksProtocol)
+}
+
+// WithAllowedProxyProtocols List of proxy protocols to fetch from our project sources
+func (p *Proxier) WithAllowedProxyProtocols(protocols ...proxy.Protocol) *Proxier {
+	for _, protocol := range protocols {
+		p.AllowedProxyProtocols = append(p.AllowedProxyProtocols, protocol)
+	}
+
+	return p
 }
 
 // WithProxySources Add proxy sources
@@ -98,7 +111,7 @@ func (p *Proxier) GetProxyFromSources(ctx context.Context) (*proxy.Proxy, error)
 			}
 
 			// Check if it's our allowed protocols
-			for _, protocol := range AllowedProxyProtocols {
+			for _, protocol := range p.AllowedProxyProtocols {
 				if proxy.Protocol == protocol {
 					// We found a proxy!
 					return proxy, nil
