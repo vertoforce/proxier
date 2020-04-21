@@ -30,9 +30,10 @@ func (p *GetProxyListSource) GetProxy(ctx context.Context) (*proxy.Proxy, error)
 
 func (p *GetProxyListProxy) Standardize() *proxy.Proxy {
 	ret := &proxy.Proxy{
-		IP:       p.IP,
-		Port:     uint16(p.Port),
-		Protocol: proxy.Protocol(p.Protocol),
+		IP:            p.IP,
+		Port:          uint16(p.Port),
+		Protocol:      proxy.Protocol(p.Protocol),
+		SupportsHTTPS: p.AllowsHTTPS,
 	}
 	return ret
 }

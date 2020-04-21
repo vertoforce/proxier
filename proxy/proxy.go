@@ -24,9 +24,10 @@ const (
 
 // Proxy Proxy
 type Proxy struct {
-	IP       string
-	Port     uint16
-	Protocol Protocol
+	IP            string
+	Port          uint16
+	Protocol      Protocol
+	SupportsHTTPS bool
 }
 
 // ProxySource is a source of proxies

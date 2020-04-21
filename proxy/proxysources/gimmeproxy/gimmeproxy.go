@@ -35,9 +35,10 @@ func (p *GimmeProxyProxy) Standardize() *proxy.Proxy {
 		port = 0
 	}
 	ret := &proxy.Proxy{
-		IP:       p.IP,
-		Port:     uint16(port),
-		Protocol: proxy.Protocol(p.Type),
+		IP:            p.IP,
+		Port:          uint16(port),
+		Protocol:      proxy.Protocol(p.Type),
+		SupportsHTTPS: p.SupportsHTTPS,
 	}
 
 	return ret
